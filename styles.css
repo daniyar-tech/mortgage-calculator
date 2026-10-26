@@ -121,23 +121,45 @@ body.dark .header {
 
 .main-nav {
     display: flex;
-    gap: 4px;
-    flex: 1;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
     justify-content: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    touch-action: pan-x;
 }
 
-/* Найдите .nav-link и обновите transition, добавив transform: */
+.main-nav::-webkit-scrollbar { display: none; }
+
 .nav-link {
+    flex: 0 0 auto;
     background: transparent;
     border: none;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 12px;
     color: var(--ink-3);
-    padding: 9px 12px;
+    padding: 8px 7px;
+    white-space: nowrap;
     cursor: pointer;
     border-radius: 999px;
     transition: color 0.2s ease, background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+    scroll-snap-align: start;
+}
+
+.nav-link:focus-visible,
+.btn:focus-visible,
+.theme-toggle:focus-visible,
+.segmented-btn:focus-visible,
+.saved-actions button:focus-visible,
+.scenario-card .remove-scenario:focus-visible {
+    outline: 3px solid rgba(27, 77, 58, 0.35);
+    outline-offset: 2px;
 }
 
 .nav-link:active {
@@ -382,19 +404,33 @@ body.dark .theme-toggle-knob { transform: translateX(20px); }
 
 .form-actions {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    flex-wrap: nowrap;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
     margin-top: 24px;
 }
 
+.form-actions::-webkit-scrollbar { display: none; }
+
 .btn {
-    padding: 13px 24px;
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 10px 12px;
     border: 1px solid transparent;
     border-radius: var(--radius);
     font-family: inherit;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.01em;
+    white-space: nowrap;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 6px 18px rgba(31, 27, 20, 0.05);
@@ -405,7 +441,7 @@ body.dark .theme-toggle-knob { transform: translateX(20px); }
     box-shadow: 0 10px 18px rgba(31, 27, 20, 0.08);
 }
 
-.btn-primary { background: linear-gradient(135deg, var(--green) 0%, #275f4a 100%); color: #fff; flex: 1; min-width: 160px; }
+.btn-primary { background: linear-gradient(135deg, var(--green) 0%, #275f4a 100%); color: #fff; flex: 1 1 auto; min-width: 120px; }
 .btn-primary:hover { background: linear-gradient(135deg, var(--green-hover) 0%, #173f31 100%); }
 
 .btn-ghost {
@@ -624,6 +660,8 @@ body.dark .result-card {
     max-height: 540px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
 }
 
 #amortizationTable { min-width: 680px; }
@@ -975,7 +1013,9 @@ input.valid { border-color: var(--green); }
     border-radius: var(--radius-sm);
     font-size: 12px;
     font-weight: 400;
-    white-space: nowrap;
+    width: max-content;
+    max-width: min(260px, calc(100vw - 32px));
+    white-space: normal;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s;
@@ -1053,22 +1093,132 @@ input.valid { border-color: var(--green); }
     .calc-layout { grid-template-columns: 1fr; gap: 32px; }
     .calc-result-col { position: static; }
     .hero h1 { font-size: 36px; }
+    .header-inner { flex-wrap: wrap; gap: 8px 16px; padding: 12px 20px 0; }
+    .theme-toggle { margin-left: auto; }
+    .main-nav {
+        order: 3;
+        flex: 0 0 100%;
+        width: 100%;
+        justify-content: flex-start;
+        gap: 6px;
+        padding: 2px 0 8px;
+    }
+    .nav-link {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 10px 14px;
+        white-space: nowrap;
+        scroll-snap-align: start;
+    }
+    .form-actions .btn {
+        min-width: max-content;
+    }
 }
 
 @media (max-width: 768px) {
-    .header-inner { padding: 12px 16px; gap: 16px; flex-wrap: wrap; }
-    .main-nav { order: 3; width: 100%; justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
-    .nav-link { white-space: nowrap; font-size: 13px; padding: 7px 10px; }
-    .container { padding: 24px 16px 40px; }
+    .header-inner { padding: 8px 12px 0; gap: 8px 12px; flex-wrap: wrap; }
+    .brand { gap: 8px; }
+    .brand-mark { width: 32px; height: 32px; }
+    .brand-title { font-size: 16px; }
+    .brand-sub { font-size: 10px; }
+    .theme-toggle { margin-left: auto; }
+    .main-nav {
+        order: 3;
+        flex: 0 0 100%;
+        width: 100%;
+        min-width: 0;
+        justify-content: flex-start;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        gap: 6px;
+        padding: 2px 0 8px;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x proximity;
+        touch-action: pan-x;
+    }
+    .main-nav::-webkit-scrollbar { display: none; }
+    .nav-link {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+    .container { padding: 20px 12px 32px; }
+    .page-head { margin-bottom: 22px; }
+    .page-head h2 { font-size: 27px; }
+    .page-head p { font-size: 14px; }
+    .calc-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-bottom: 28px; }
+    .calc-result-col,
+    .result-card { min-width: 0; }
+    .result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; }
+    .result-grid > div { min-width: 0; }
+    .result-value-sm { font-size: clamp(15px, 4.4vw, 18px); overflow-wrap: anywhere; }
+    .hero { margin-bottom: 26px; }
     .hero h1 { font-size: 28px; }
+    .hero p { font-size: 15px; }
     .hero-meta { gap: 8px; }
     .hero-meta span { font-size: 11px; }
     .field-row { grid-template-columns: 1fr; gap: 0; }
     .result-value { font-size: 36px; }
     .comparison { grid-template-columns: 1fr; }
-    .card { padding: 20px; }
-    .amortization-section { padding: 20px; }
+    .card { padding: 18px; margin-bottom: 16px; }
+    .card h3 { font-size: 19px; }
+    .amortization-section { padding: 18px; margin-top: 28px; }
     .section-badge { margin-bottom: 12px; }
+    .input-wrap input,
+    .field input[type="number"],
+    .field input[type="date"],
+    .field select { min-height: 48px; font-size: 16px; }
+    .btn { min-height: 48px; padding: 12px 18px; }
+    .form-actions { gap: 8px; }
+    .segmented-btn { min-height: 44px; padding: 10px 8px; }
+    .checkbox-label { min-height: 44px; padding: 6px 0; }
+    .checkbox-label input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 20px; }
+    .summary { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .summary-item { padding: 13px 15px; }
+    .summary-item strong { font-size: 18px; overflow-wrap: anywhere; }
+    .chart-container { height: 240px; padding: 10px; }
+    .table-header { align-items: flex-start; flex-direction: column; gap: 12px; }
+    .table-controls { width: 100%; flex-wrap: wrap; }
+    .table-controls select { max-width: 100%; }
+    .table-container table { min-width: 560px; }
+    #amortizationTable { min-width: 680px; }
+    .compare-mini-table { table-layout: fixed; }
+    .compare-mini-table th,
+    .compare-mini-table td { padding-right: 4px; padding-left: 4px; font-size: 11px; }
+    .compare-mini-table th:first-child,
+    .compare-mini-table td:first-child { width: 38%; overflow-wrap: anywhere; }
+    .compare-mini-table th:nth-child(2),
+    .compare-mini-table td:nth-child(2) { width: 27%; }
+    .compare-mini-table th:nth-child(3),
+    .compare-mini-table td:nth-child(3) { width: 35%; }
+    .scenarios-container { grid-template-columns: minmax(0, 1fr); }
+    .scenario-card .remove-scenario { width: 44px; height: 44px; top: 8px; right: 8px; font-size: 20px; }
+    .scenario-card .field input,
+    .scenario-card .field select { min-height: 48px; font-size: 16px; }
+    .saved-actions { width: 100%; }
+    .saved-actions button { flex: 1; min-height: 44px; }
+    .tooltip::after { display: none; }
+    .mobile-table-hint { display: block; }
+    .footer { padding: 24px 16px; }
+}
+
+@media (max-width: 420px) {
+    .header-inner { padding-right: 10px; padding-left: 10px; }
+    .container { padding-right: 10px; padding-left: 10px; }
+    .brand-sub { max-width: 210px; }
+    .result-grid { gap: 12px; }
+    .result-income-value { font-size: 23px; }
+    .info-block { padding: 20px 18px; }
+    .formula { padding: 12px; }
+    .formula code { font-size: 12px; }
+    .comparison-item { padding: 16px; }
+    .comparison-item p strong { overflow-wrap: anywhere; }
+    .saved-item { padding: 16px; }
+    .saved-info p { overflow-wrap: anywhere; }
     .mobile-table-hint { display: block; }
 }
 
