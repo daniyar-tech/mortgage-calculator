@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ипотечный калькулятор — расчёт платежей по месяцам</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="libs/chart.js"></script>
+    <script src="libs/xlsx.full.min.js"></script>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a class="brand" href="#">
+                <div class="brand-mark">№</div>
+                <div class="brand-text">
+                    <div class="brand-title">Реестр</div>
+                    <div class="brand-sub">калькулятор ипотечных платежей</div>
+                </div>
+            </a>
+
+            <nav class="main-nav" id="mainNav">
+                <button class="nav-link active" data-tab="calculator">Расчёт</button>
+                <button class="nav-link" data-tab="earlyRepayment">Досрочное погашение</button>
+                <button class="nav-link" data-tab="insurance">Страхование</button>
+                <button class="nav-link" data-tab="taxDeduction">Налоговый вычет</button>
+                <button class="nav-link" data-tab="refinancing">Рефинансирование</button>
+                <button class="nav-link" data-tab="scenarios">Сценарии</button>
+                <button class="nav-link" data-tab="saved">Сохранённые</button>
+                <button class="nav-link" data-tab="info">Справочник терминов</button>
+            </nav>
+
+            <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
+                <span class="theme-toggle-knob"></span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- ВКЛАДКА 1: КАЛЬКУЛЯТОР -->
+        <section class="tab-content active" id="tab-calculator">
+            <div class="calc-layout">
+                <div class="calc-form-col">
+                    <div class="hero">
+                        <div class="section-badge">Кредитный калькулятор</div>
+                        <h1>Сколько будет стоить ваша ипотека — <em>по месяцам и до копейки</em></h1>
+                        <p>Введите условия кредита. Справа сразу увидите ежемесячный платёж, переплату и полную сумму, а ниже — подробный график амортизации с возможностью выгрузки в Excel.</p>
+                        <div class="hero-meta">
+                            <span>До 50 лет</span>
+                            <span>Excel / PDF</span>
+                            <span>3 сценария</span>
+                        </div>
+                    </div>
+
+                    <div class="calc-form">
+                        <div class="field">
+                            <div class="field-head">
+                                <label for="loanAmount">Стоимость недвижимости <span class="tooltip" data-text="Полная цена жилья до вычета первоначального взноса">?</span></label>
+                            </div>
+                            <div class="input-wrap">
+                                <input type="number" id="loanAmount" value="5000000" min="50000" max="100000000" step="50000" placeholder="Введите сумму">
+                                <span class="input-suffix">₽</span>
+                            </div>
+                            <small class="field-hint">От 50 000 до 100 000 000 ₽</small>
+                        </div>
+
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="downPayment">Первоначальный взнос <span class="tooltip" data-text="Часть стоимости, которую вы платите из своих средств">?</span></label>
+                                <div class="input-wrap">
+                                    <input type="number" id="downPayment" value="1000000" min="0" step="50000">
+                                    <span class="input-suffix">₽</span>
+                                </div>
+                                <small class="field-hint">Меньше стоимости недвижимости</small>
+                            </div>
+                            <div class="field">
+                                <label for="interestRate">Ставка, % годовых <span class="tooltip" data-text="Годовая процентная ставка банка">?</span></label>
+                                <div class="input-wrap">
+                                    <input type="number" id="interestRate" value="12" min="0.1" max="100" step="0.1">
+                                    <span class="input-suffix">%</span>
+                                </div>
+                                <small class="field-hint">От 0.1 до 100%</small>
+                            </div>
+                        </div>
+
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="loanTerm">Срок кредита <span class="tooltip" data-text="Количество лет, на которые берётся ипотека">?</span></label>
+                                <div class="input-wrap">
+                                    <input type="number" id="loanTerm" value="20" min="1" max="50" step="1">
+                                    <span class="input-suffix">лет</span>
+                                </div>
+                                <small class="field-hint">От 1 до 50 лет</small>
+                            </div>
+                            <div class="field">
+                                <label for="startDate">Дата выдачи</label>
+                                <div class="input-wrap">
+                                    <input type="date" id="startDate">
+                                </div>
+                                <small class="field-hint">Не более 5 лет назад</small>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label>Тип платежа</label>
+                            <div class="segmented" id="paymentTypeSegmented">
+                                <button type="button" class="segmented-btn active" data-value="annuity">Аннуитетный</button>
+                                <button type="button" class="segmented-btn" data-value="differentiated">Дифференцированный</button>
+                            </div>
+                            <select id="paymentType" hidden>
+                                <option value="annuity">Аннуитетный</option>
+                                <option value="differentiated">Дифференцированный</option>
+                            </select>
+                            <small class="field-hint" id="paymentTypeHint">Платёж одинаков весь срок; сначала в нём больше процентов, потом больше тела кредита.</small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button onclick="calculateMortgage()" class="btn btn-primary">Рассчитать</button>
+                            <button onclick="resetForm()" class="btn btn-ghost">Сбросить</button>
+                            <button onclick="buildShareURL()" class="btn btn-ghost">Поделиться</button>
+                            <button onclick="saveCalculation()" class="btn btn-ghost">Сохранить</button>
+                            <button onclick="exportToExcel()" class="btn btn-ghost" id="exportBtn" style="display:none;">В Excel</button>
+                            <button onclick="exportToPDF()" class="btn btn-ghost" id="pdfBtn" style="display:none;">Печать / PDF</button>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="calc-result-col">
+                    <div class="result-card">
+                        <div class="result-primary">
+                            <div class="result-label">Ежемесячный платёж</div>
+                            <div class="result-value" id="monthlyPayment">— ₽</div>
+                            <div class="result-note" id="paymentTypeNote">платёж фиксирован на весь срок</div>
+                        </div>
+
+                        <div class="result-divider"></div>
+
+                        <div class="result-grid">
+                            <div>
+                                <div class="result-label">Общая переплата</div>
+                                <div class="result-value-sm" id="overpayment">— ₽</div>
+                            </div>
+                            <div>
+                                <div class="result-label">Итого выплат</div>
+                                <div class="result-value-sm" id="totalPayment">— ₽</div>
+                            </div>
+                        </div>
+
+                        <div class="result-grid">
+                            <div>
+                                <div class="result-label">Срок кредита</div>
+                                <div class="result-value-sm" id="actualTerm">— лет</div>
+                            </div>
+                            <div>
+                                <div class="result-label" title="Годовая ставка с учётом ежемесячного начисления процентов; комиссии и страховка не включены">Эффективная годовая ставка</div>
+                                <div class="result-value-sm" id="effectiveRate">— %</div>
+                            </div>
+                        </div>
+
+                        <div class="result-divider"></div>
+
+                        <div class="result-income">
+                            <div class="result-label">Нужный доход на семью</div>
+                            <div class="result-income-value" id="requiredIncome">— ₽/мес.</div>
+                            <p class="result-disclaimer">Ориентир: банк обычно одобряет кредит, если платёж ≤ 50% дохода. Это оценка, а не гарантия одобрения.</p>
+                        </div>
+                        <p class="calc-assumptions">Предварительная оценка: комиссии, страховка и индивидуальные условия банка не учитываются.</p>
+                    </div>
+
+                    <!-- Сравнение схем -->
+                    <div class="compare-types-card" id="compareTypesCard">
+                        <div class="result-label">Сравнение схем</div>
+                        <table class="compare-mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Схема</th>
+                                    <th>Платёж</th>
+                                    <th>Переплата</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr id="rowAnnuity">
+                                    <td>Аннуитет</td>
+                                    <td id="annuityPayment">—</td>
+                                    <td id="annuityInterest">—</td>
+                                </tr>
+                                <tr id="rowDiff">
+                                    <td>Дифференцированный</td>
+                                    <td id="diffPayment">—</td>
+                                    <td id="diffInterest">—</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </aside>
+            </div>
+
+            <section class="amortization-section">
+                <div class="table-header">
+                    <h2>График амортизации платежей</h2>
+                    <div class="table-controls">
+                        <label for="yearFilter">Показать:</label>
+                        <select id="yearFilter" onchange="updateAmortizationTable()">
+                            <option value="all">Все платежи</option>
+                            <option value="first100">Первые 100</option>
+                            <option value="1">Только 1-й год</option>
+                            <option value="2">Только 2-й год</option>
+                            <option value="3">Только 3-й год</option>
+                            <option value="5">Первые 5 лет</option>
+                            <option value="10">Первые 10 лет</option>
+                            <option value="last12">Последний год</option>
+                        </select>
+                        <span class="table-count" id="tableCount"></span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="paymentChart"></canvas>
+                </div>
+                <div class="table-container">
+                    <table id="amortizationTable">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Дата</th>
+                                <th>Платёж</th>
+                                <th>Основной долг</th>
+                                <th>Проценты</th>
+                                <th>Остаток долга</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <p class="mobile-table-hint">Таблицу можно прокручивать по горизонтали.</p>
+            </section>
+        </section>
+
+        <!-- ВКЛАДКА 2: ДОСРОЧНОЕ ПОГАШЕНИЕ -->
+        <section class="tab-content" id="tab-earlyRepayment">
+            <div class="page-head">
+                <h2>Досрочное погашение</h2>
+                <p>Рассчитайте экономию при досрочном погашении кредита</p>
+            </div>
+            <div class="card">
+                <div class="field">
+                    <label for="earlyAmount">Сумма досрочного платежа</label>
+                    <div class="input-wrap">
+                        <input type="number" id="earlyAmount" value="100000" min="1000" step="10000">
+                        <span class="input-suffix">₽</span>
+                    </div>
+                    <small class="field-hint">Это дополнительная сумма сверх обычного платежа. Например: 100 000 ₽ в 12-м месяце. Сначала рассчитайте основной кредит.</small>
+                </div>
+                <div class="field">
+                    <label for="earlyMonth">Месяц досрочного погашения</label>
+                    <div class="input-wrap">
+                        <input type="number" id="earlyMonth" value="12" min="1" step="1">
+                    </div>
+                    <small class="field-hint">Считается от первого платежа по графику: 1 — первый месяц, 12 — двенадцатый платёж. Месяц не должен выходить за срок кредита.</small>
+                </div>
+                <div class="field">
+                    <label for="earlyType">Тип досрочного погашения</label>
+                    <select id="earlyType">
+                        <option value="reduceTerm">Уменьшить срок кредита</option>
+                        <option value="reducePayment">Уменьшить платёж</option>
+                    </select>
+                </div>
+                <button onclick="calculateEarlyRepayment()" class="btn btn-primary">Рассчитать экономию</button>
+            </div>
+            <div class="card" id="earlyResults" style="display:none;">
+                <h3>Результат</h3>
+                <div class="summary">
+                    <div class="summary-item"><span>Новый срок</span><strong id="earlyNewTerm">—</strong></div>
+                    <div class="summary-item"><span>Экономия на процентах</span><strong id="interestSavings">—</strong></div>
+                    <div class="summary-item"><span>Новая переплата</span><strong id="newOverpayment">—</strong></div>
+                    <div class="summary-item"><span>Платёж после досрочного взноса</span><strong id="newMonthlyPayment">—</strong></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 3: СТРАХОВАНИЕ -->
+        <section class="tab-content" id="tab-insurance">
+            <div class="page-head">
+                <h2>Страхование ипотеки</h2>
+                <p>Рассчитайте ежегодную стоимость страхования</p>
+            </div>
+            <div class="card">
+                <div class="field">
+                    <label for="insuranceRate">Ставка страхования, % в год</label>
+                    <div class="input-wrap">
+                        <input type="number" id="insuranceRate" value="0.5" min="0.1" max="10" step="0.1">
+                        <span class="input-suffix">%</span>
+                    </div>
+                    <small class="field-hint">От 0.1 до 10%</small>
+                </div>
+                <div class="field">
+                    <label>Виды страхования</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label"><input type="checkbox" id="lifeInsurance" checked> Страхование жизни и здоровья</label>
+                        <label class="checkbox-label"><input type="checkbox" id="propertyInsurance" checked> Страхование имущества</label>
+                        <label class="checkbox-label"><input type="checkbox" id="titleInsurance"> Страхование титула</label>
+                    </div>
+                </div>
+                <p class="hint">Учебная оценка: введённая ставка применяется к остатку долга; жизнь учитывается с коэффициентом 1, имущество — 0,5, титул — 0,3. Коэффициенты условные, реальные тарифы и страховая база зависят от страховщика и договора. Расчёт не входит в основной платёж.</p>
+                <button onclick="calculateInsurance()" class="btn btn-primary">Рассчитать</button>
+            </div>
+            <div class="card" id="insuranceResults" style="display:none;">
+                <h3>Результат</h3>
+                <div class="summary">
+                    <div class="summary-item"><span>За первый год</span><strong id="insuranceYear1">—</strong></div>
+                    <div class="summary-item"><span>За весь срок</span><strong id="insuranceTotal">—</strong></div>
+                </div>
+                <div class="table-container">
+                    <table id="insuranceTable">
+                        <thead><tr><th>Год</th><th>Остаток долга</th><th>Страховая премия</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 4: НАЛОГОВЫЙ ВЫЧЕТ -->
+        <section class="tab-content" id="tab-taxDeduction">
+            <div class="page-head">
+                <h2>Налоговый вычет по ипотеке</h2>
+                <p>Имущественный вычет и вычет по процентам</p>
+            </div>
+            <div class="card">
+                <div class="field">
+                    <label for="annualIncome">Ваш годовой доход</label>
+                    <div class="input-wrap">
+                        <input type="number" id="annualIncome" value="1200000" min="1" step="50000">
+                        <span class="input-suffix">₽</span>
+                    </div>
+                    <small class="field-hint">Укажите годовой доход до налогообложения — он используется только для примерной оценки срока возврата.</small>
+                </div>
+                <div class="field">
+                    <label for="propertyCost">Стоимость недвижимости</label>
+                    <div class="input-wrap">
+                        <input type="number" id="propertyCost" value="5000000" min="1" step="100000">
+                        <span class="input-suffix">₽</span>
+                    </div>
+                    <small class="field-hint">Для оценки имущественного вычета; при наличии права на него.</small>
+                </div>
+                <button onclick="calculateTaxDeduction()" class="btn btn-primary">Рассчитать вычет</button>
+            </div>
+            <div class="card" id="taxResults" style="display:none;">
+                <h3>Результат</h3>
+                <div class="summary">
+                    <div class="summary-item"><span>Вычет по стоимости жилья</span><strong id="propertyDeduction">—</strong></div>
+                    <div class="summary-item"><span>Вычет по процентам</span><strong id="interestDeduction">—</strong></div>
+                    <div class="summary-item"><span>Общая сумма</span><strong id="totalDeduction">—</strong></div>
+                    <div class="summary-item"><span>Ориентировочный срок</span><strong id="deductionYears">—</strong></div>
+                </div>
+                <p class="hint">Оценка по ставке 13%: максимум 260 000 ₽ — по стоимости жилья и 390 000 ₽ — по процентам. Срок условно рассчитан как сумма вычета, делённая на 13% указанного годового дохода; это не фактический график возврата. Фактическая сумма и срок зависят от уплаченного НДФЛ, права на вычет и применимых налоговых правил.</p>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 5: РЕФИНАНСИРОВАНИЕ -->
+        <section class="tab-content" id="tab-refinancing">
+            <div class="page-head">
+                <h2>Рефинансирование</h2>
+                <p>Сравните текущий кредит с новыми условиями</p>
+            </div>
+            <div class="card">
+                <h3>Текущий кредит</h3>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="currentBalance">Остаток долга</label>
+                        <div class="input-wrap"><input type="number" id="currentBalance" value="4000000" min="1" step="100000"><span class="input-suffix">₽</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="currentRate">Текущая ставка</label>
+                        <div class="input-wrap"><input type="number" id="currentRate" value="15" min="0.1" max="100" step="0.1"><span class="input-suffix">%</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="currentTermLeft">Осталось платить</label>
+                        <div class="input-wrap"><input type="number" id="currentTermLeft" value="18" min="1" max="50" step="1"><span class="input-suffix">лет</span></div>
+                    </div>
+                </div>
+                <h3>Новые условия</h3>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="newRate">Новая ставка</label>
+                        <div class="input-wrap"><input type="number" id="newRate" value="10" min="0.1" max="100" step="0.1"><span class="input-suffix">%</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="newTerm">Новый срок</label>
+                        <div class="input-wrap"><input type="number" id="newTerm" value="15" min="1" max="50" step="1"><span class="input-suffix">лет</span></div>
+                    </div>
+                    <div class="field">
+                        <label for="refinanceCost">Расходы</label>
+                        <div class="input-wrap"><input type="number" id="refinanceCost" value="50000" min="0" step="10000"><span class="input-suffix">₽</span></div>
+                    </div>
+                </div>
+                <p class="hint">Сравнение рассчитано для аннуитетных платежей. Укажите остаток долга и оставшийся срок по текущему графику. В расходы включите все затраты на оформление; фактическое предложение банка может отличаться.</p>
+                <button onclick="calculateRefinancing()" class="btn btn-primary">Рассчитать выгоду</button>
+            </div>
+            <div class="card" id="refiResults" style="display:none;">
+                <h3>Сравнение</h3>
+                <div class="comparison">
+                    <div class="comparison-item">
+                        <h4>Текущий кредит</h4>
+                        <p>Платёж: <strong id="currentPayment">—</strong></p>
+                        <p>Проценты до конца срока: <strong id="currentOverpay">—</strong></p>
+                    </div>
+                    <div class="comparison-item highlight">
+                        <h4>После рефинансирования</h4>
+                        <p>Платёж: <strong id="newPayment">—</strong></p>
+                        <p>Проценты по новому кредиту: <strong id="newOverpay">—</strong></p>
+                    </div>
+                </div>
+                <div class="summary">
+                    <div class="summary-item"><span>Разница ежемесячного платежа</span><strong id="monthlySavings">—</strong></div>
+                    <div class="summary-item"><span>Расходы на оформление</span><strong id="refiCostResult">—</strong></div>
+                    <div class="summary-item"><span>Итог после расходов</span><strong id="totalSavings">—</strong></div>
+                </div>
+                <p class="hint" id="refiResultHint"></p>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 6: СЦЕНАРИИ -->
+        <section class="tab-content" id="tab-scenarios">
+            <div class="page-head">
+                <h2>Сравнение сценариев</h2>
+                <p>До трёх вариантов ипотеки рядом</p>
+            </div>
+            <div class="card">
+                <p class="hint">Для честного сравнения укажите одинаковую сумму кредита во всех сценариях. Меняйте ставку, срок или тип платежа.</p>
+                <div class="form-actions">
+                    <button onclick="addScenario()" class="btn btn-ghost">+ Добавить сценарий</button>
+                    <button onclick="compareScenarios()" class="btn btn-primary">Сравнить</button>
+                    <button onclick="clearScenarios()" class="btn btn-danger">Очистить</button>
+                </div>
+                <div id="scenariosContainer" class="scenarios-container"></div>
+            </div>
+            <div class="card" id="compareResults" style="display:none;">
+                <h3>Результаты сравнения</h3>
+                <div class="table-container">
+                    <table id="compareTable">
+                        <thead><tr><th>Параметр</th><th>Сценарий 1</th><th>Сценарий 2</th><th>Сценарий 3</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <p class="hint" id="scenarioResultHint"></p>
+                <div class="chart-container" style="height:340px;"><canvas id="compareChart"></canvas></div>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 7: СОХРАНЁННЫЕ -->
+        <section class="tab-content" id="tab-saved">
+            <div class="page-head">
+                <h2>Сохранённые расчёты</h2>
+                <p>Хранятся в браузере, доступны без регистрации</p>
+            </div>
+            <div class="card">
+                <button onclick="clearSaved()" class="btn btn-danger">Очистить всё</button>
+                <div id="savedContainer" class="saved-container"></div>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 8: СПРАВКА -->
+        <section class="tab-content" id="tab-info">
+            <div class="page-head">
+                <h2>Справочник терминов</h2>
+                <p>Простые объяснения, формулы и подсказки к вкладкам калькулятора</p>
+            </div>
+
+            <div class="info-block">
+                <h3>Как устроена ипотека</h3>
+                <p>Ипотека — это кредит на покупку недвижимости, при котором приобретённое жильё обычно становится залогом в пользу банка. Заёмщик живёт в своей квартире и выплачивает долг по графику, а залог обеспечивает исполнение обязательств. Точные права и ограничения определяются договором и законом.</p>
+                <p>В расчёте калькулятора стоимость жилья и сумма кредита — разные величины: из стоимости вычитается первоначальный взнос, и остаток считается основным долгом.</p>
+                <div class="formula"><code>Сумма кредита = стоимость недвижимости − первоначальный взнос</code></div>
+            </div>
+
+            <div class="info-block">
+                <h3>Из чего состоит платёж</h3>
+                <ul>
+                    <li><strong>Основной долг (тело кредита)</strong> — сумма, которую банк выдал заёмщику. Часть каждого платежа уменьшает остаток долга.</li>
+                    <li><strong>Проценты</strong> — плата за пользование ещё не возвращённой частью кредита. Чем дольше остаётся долг, тем дольше на него начисляются проценты.</li>
+                    <li><strong>Дополнительные расходы</strong> — например, страхование, оценка или комиссии. Они не входят в основные итоги кредита; отдельные вкладки показывают некоторые из них как самостоятельные ориентировочные расчёты.</li>
+                </ul>
+                <p>Обычно в начале срока остаток долга большой, поэтому заметную часть платежа составляют проценты. Позже долг уменьшается и большая доля платежа направляется на его погашение.</p>
+            </div>
+
+            <div class="info-block">
+                <h3>Аннуитетный и дифференцированный платежи</h3>
+                <p><strong>Аннуитетный платёж</strong> — одинаковая расчётная сумма каждый месяц при неизменных ставке и сроке. Удобно планировать бюджет, но в первых платежах доля процентов обычно выше.</p>
+                <div class="formula"><code>A = S · i · (1 + i)ⁿ / ((1 + i)ⁿ − 1)</code></div>
+                <p><strong>Дифференцированный платёж</strong> — основной долг погашается равными частями, а проценты каждый месяц начисляются на текущий остаток. Поэтому платежи постепенно уменьшаются; первые обычно выше аннуитетных.</p>
+                <div class="formula"><code>P = S / n + O · i</code></div>
+                <ul>
+                    <li><strong>S</strong> — сумма кредита, <strong>i</strong> — месячная процентная ставка, <strong>n</strong> — количество месяцев.</li>
+                    <li><strong>O</strong> — остаток долга перед платежом. Формулы показывают упрощённую модель без комиссий и изменения ставки.</li>
+                </ul>
+            </div>
+
+            <div class="info-block">
+                <h3>Ставка и срок кредита</h3>
+                <ul>
+                    <li><strong>Процентная ставка</strong> в основной форме вводится как годовая. Для расчёта платежа калькулятор делит её на 12 и использует как месячную ставку.</li>
+                    <li><strong>Эффективная годовая ставка</strong> здесь — математический эквивалент ежемесячного начисления процентов: <code>(1 + i)¹² − 1</code>. Это не полная стоимость кредита: комиссии, страховки и другие услуги в ней не учитываются.</li>
+                    <li><strong>Срок кредита</strong> влияет и на платёж, и на общую сумму процентов. Более длинный срок обычно снижает ежемесячный платёж, но при прочих равных увеличивает переплату.</li>
+                </ul>
+            </div>
+
+            <div class="info-block">
+                <h3>Показатели в результатах и график платежей</h3>
+                <ul>
+                    <li><strong>Ежемесячный платёж</strong> — регулярный платёж по выбранной схеме в расчётной модели.</li>
+                    <li><strong>Общая сумма выплат</strong> — сумма всех запланированных платежей по кредиту.</li>
+                    <li><strong>Переплата по процентам</strong> — сумма процентов за весь рассчитанный срок; это не то же самое, что общая сумма выплат.</li>
+                    <li><strong>График амортизации</strong> — помесячная таблица с платежом, его частью на погашение долга, процентами и остатком после платежа.</li>
+                </ul>
+                <p>Фактический график банка может немного отличаться из-за конкретных дат, правил округления, условий договора и изменения ставки.</p>
+            </div>
+
+            <div class="info-block">
+                <h3>Досрочное погашение</h3>
+                <p>Досрочный платёж — дополнительная сумма сверх обычного платежа. В этой вкладке указываются сумма такого взноса и месяц, в котором он вносится.</p>
+                <ul>
+                    <li><strong>Уменьшить срок</strong> — сохранить примерно прежний регулярный платёж и закончить выплаты раньше. При прочих равных это обычно сильнее сокращает будущие проценты.</li>
+                    <li><strong>Уменьшить платёж</strong> — пересчитать будущие платежи ниже, сохранив оставшийся срок. Это уменьшает ежемесячную нагрузку.</li>
+                </ul>
+                <p>Дополнительный взнос уменьшает остаток долга, а значит, и базу для последующего начисления процентов. Если суммы хватает на весь оставшийся долг, кредит может закрыться раньше срока. Банк может применять собственные правила даты и оформления досрочного платежа.</p>
+            </div>
+
+            <div class="info-block">
+                <h3>Налоговый вычет</h3>
+                <p>Имущественный вычет может предоставляться при покупке жилья и по подходящим ипотечным процентам. Это уменьшение облагаемого дохода, а не автоматическая выплата всей рассчитанной суммы: возврат зависит от права на вычет, подтверждённых расходов и налога, который был уплачен.</p>
+                <p>Калькулятор показывает ориентир по упрощённой модели с лимитами базы 2 млн ₽ для покупки и 3 млн ₽ для процентов и ставкой 13%. Для процентной части он использует проценты из расчётного графика, тогда как для реального вычета важны фактически уплаченные и подходящие под правила проценты. Реальные правила и доступная сумма могут отличаться в зависимости от даты сделки, права на вычет, вида кредита и применимой ставки налога. Для решения о подаче документов проверьте актуальные требования ФНС.</p>
+            </div>
+
+            <div class="info-block">
+                <h3>Рефинансирование</h3>
+                <p>Рефинансирование — оформление нового кредита для погашения старого. Сравнивайте не только ставки и ежемесячные платежи, но и общую сумму оставшихся выплат вместе с затратами на переход.</p>
+                <p>Снижение платежа само по себе не гарантирует экономию: если новый срок значительно длиннее, процентов за весь период может набраться больше. В расчёте сайта расходы на рефинансирование задаются отдельным полем; возможные прочие расходы и условия банка могут потребовать отдельной проверки.</p>
+            </div>
+
+            <div class="info-block">
+                <h3>Другие полезные термины</h3>
+                <ul>
+                    <li><strong>Первоначальный взнос</strong> — часть стоимости недвижимости, которую покупатель оплачивает своими средствами. Чем он больше, тем меньше сумма кредита.</li>
+                    <li><strong>Остаток долга</strong> — часть основного долга, которую ещё предстоит вернуть; проценты обычно начисляются именно на неё.</li>
+                    <li><strong>Залог и обременение</strong> — обеспечение кредита недвижимостью и зарегистрированное ограничение, связанное с залогом. Это не означает, что заёмщик не может пользоваться жильём.</li>
+                    <li><strong>LTV</strong> — отношение суммы кредита к стоимости недвижимости. Например, кредит 4 млн ₽ при цене жилья 5 млн ₽ даёт LTV 80%.</li>
+                    <li><strong>DTI</strong> — отношение регулярных долговых платежей к доходу заёмщика. Это один из показателей долговой нагрузки, но способы его расчёта могут различаться.</li>
+                    <li><strong>Реструктуризация</strong> — изменение условий действующего кредита по соглашению с кредитором, например изменение графика или срока; новый кредит обычно не оформляется.</li>
+                    <li><strong>Сценарий</strong> — отдельный набор цены, взноса, ставки и срока, который можно сравнить с другими вариантами в калькуляторе.</li>
+                </ul>
+            </div>
+
+            <div class="info-block">
+                <h3>Как пользоваться расчётом</h3>
+                <ol>
+                    <li>В основной вкладке укажите стоимость недвижимости, первоначальный взнос, срок, ставку и тип платежа.</li>
+                    <li>Сначала оцените ежемесячный платёж, общую сумму выплат и переплату, затем посмотрите помесячный график.</li>
+                    <li>Меняйте по одному параметру или создайте несколько сценариев, чтобы понять, как именно меняется результат.</li>
+                    <li>Используйте вкладки досрочного погашения, страхования, вычета и рефинансирования как отдельные ориентировочные расчёты.</li>
+                </ol>
+                <p><strong>Важно:</strong> сайт предназначен для учебных и предварительных расчётов, а не заменяет предложение банка, индивидуальный график или консультацию специалиста. Результат зависит от введённых данных и упрощений модели.</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>Ипотечный калькулятор — курсовой проект. 2026 г.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
